@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYEE
+  HR
+  ADMIN
+  HEAD
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  fullName       String
+  age            Int
+  departmentName String
+  position       String
+  email          String   @unique
+  password       String
+  phoneNumber    String   @unique
+  role           Role     @default(EMPLOYEE)
+  statusEmployee String   @default("Unverified")
+  joiningDate    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  statusAccount  String   @default("pending")
+
+  tasks     Task[]
+  absences  Absence[]
+  schedules Schedule[]
+
+  managedSchedules Schedule[]  @relation("ScheduleManager")
+  department       Department  @relation("DepartmentEmployees", fields: [departmentName], references: [name])
+  headOfDepartment Department? @relation("DepartmentHead")
+}
+
+model Department {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  description   String?
+  headId        Int?     @unique
+  employeeCount Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employees      User[] @relation("DepartmentEmployees")
+  departmentHead User?  @relation("DepartmentHead", fields: [headId], references: [id])
+  tasks          Task[] @relation("DepartmentTasks")
+}
+
+model Absence {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  date         DateTime
+  reason       String    @default("")
+  checkin      DateTime?
+  checkout     DateTime?
+  workHours    Int?
+  leaveAmmount Int       @default(12)
+  leaveTotal   Int       @default(0)
+  status       String    @default("pending")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  barcodes Barcode[]
+}
+
+model Barcode {
+  id        Int      @id @default(autoincrement())
+  barcode   String   @unique
+  date      DateTime @default(now())
+  absenceId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  absence Absence @relation(fields: [absenceId], references: [id])
+}
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  managerId Int
+  date      DateTime
+  startTime DateTime
+  endTime   DateTime
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User                    @relation(fields: [userId], references: [id])
+  manager        User                    @relation("ScheduleManager", fields: [managerId], references: [id])
+  changeRequests ScheduleChangeRequest[] @relation("ScheduleToChangeRequests")
+  scheduleTasks  ScheduleTask[]
+}
+
+model ScheduleTask {
+  scheduleId Int
+  taskId     Int
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id])
+  task     Task     @relation(fields: [taskId], references: [id])
+
+  @@id([scheduleId, taskId])
+}
+
+model Task {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String
+  status       String   @default("pending")
+  assignedTo   Int
+  departmentId Int
+  assignedDate DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user          User           @relation(fields: [assignedTo], references: [id])
+  department    Department     @relation("DepartmentTasks", fields: [departmentId], references: [id])
+  scheduleTasks ScheduleTask[]
+}
+
+model ScheduleChangeRequest {
+  id            Int      @id @default(autoincrement())
+  scheduleId    Int
+  requestReason String
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  schedule Schedule @relation("ScheduleToChangeRequests", fields: [scheduleId], references: [id])
+}
