@@ -15,13 +15,10 @@ export class ScheduleService {
     endTime: Date;
     taskIds?: number[];
   }): Promise<Schedule> {
-    console.log(data)
     const user = await this.prisma.user.findUnique({ where: { id: data.userId } });
     const manager = await this.prisma.user.findUnique({ where: { id: data.managerId } });
 
     if (!user || !manager) throw new NotFoundException('User or manager not found');
-
-
 
     // Validate tasks if provided
     if (data.taskIds && data.taskIds.length > 0) {
@@ -29,7 +26,6 @@ export class ScheduleService {
       if (tasks.length !== data.taskIds.length) throw new BadRequestException('One or more tasks not found');
     }
     
-
     // Create schedule and link tasks
     const result = await this.prisma.schedule.create({
       data: {

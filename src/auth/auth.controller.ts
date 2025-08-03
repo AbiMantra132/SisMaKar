@@ -118,4 +118,13 @@ export class AuthController {
       throw new InternalServerErrorException('Unable to process login request');
     }
   }
+
+  @Get('role')
+  getUserRole(@Req() request: ExpressRequest) {
+    const role = this.authService.getUserRoleFromCookies(request);
+    if (!role) {
+      throw new UnauthorizedException('User role not found or invalid token');
+    }
+    return { role };
+  }
 }

@@ -41,6 +41,10 @@ model User {
   absences  Absence[]
   schedules Schedule[]
 
+  leaves    Leave[]
+
+  notificationsSent Notification[] @relation("UserSentNotifications")
+
   managedSchedules Schedule[]  @relation("ScheduleManager")
   department       Department  @relation("DepartmentEmployees", fields: [departmentName], references: [name])
   headOfDepartment Department? @relation("DepartmentHead")
@@ -68,14 +72,23 @@ model Absence {
   checkin      DateTime?
   checkout     DateTime?
   workHours    Int?
-  leaveAmmount Int       @default(12)
-  leaveTotal   Int       @default(0)
-  status       String    @default("pending")
+  status       String    @default("present")
+  isLeave      Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   user     User      @relation(fields: [userId], references: [id])
   barcodes Barcode[]
+}
+
+model Leave {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  leaveAmmount Int       @default(12)
+  leaveTotal   Int       @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+  notifications Notification[] @relation("LeaveNotifications")
 }
 
 model Barcode {
@@ -102,7 +115,6 @@ model Schedule {
 
   user           User                    @relation(fields: [userId], references: [id])
   manager        User                    @relation("ScheduleManager", fields: [managerId], references: [id])
-  changeRequests ScheduleChangeRequest[] @relation("ScheduleToChangeRequests")
   scheduleTasks  ScheduleTask[]
 }
 
@@ -132,13 +144,27 @@ model Task {
   scheduleTasks ScheduleTask[]
 }
 
-model ScheduleChangeRequest {
-  id            Int      @id @default(autoincrement())
-  scheduleId    Int
-  requestReason String
-  status        String   @default("pending")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Notification {
+  id           Int      @id @default(autoincrement())
+  senderId     Int
+  receiverId   Int?
+  receiverRole Role     @default(HR)
+  type         String   @default("schedule change") // e.g., "schedule change", "leave request"
+  message      String
+  status       String   @default("unread")          // e.g., "unread", "read", "approved", "rejected"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  schedule Schedule @relation("ScheduleToChangeRequests", fields: [scheduleId], references: [id])
+  // Optional data depending on the type
+  scheduleId       Int?      // if related to schedule
+  originalDate     DateTime? // e.g., originalDate for schedule change
+  relatedDate      DateTime? // e.g., leaveDate, scheduleDate
+  replacementDate  DateTime? // for schedule change
+  shiftStart       DateTime? // optional shift detail
+  shiftEnd         DateTime? // optional shift detail
+  replyMessage     String?   
+
+  leaveId          Int?      
+  leave            Leave?    @relation("LeaveNotifications", fields: [leaveId], references: [id])
+  sender           User      @relation("UserSentNotifications", fields: [senderId], references: [id])
 }

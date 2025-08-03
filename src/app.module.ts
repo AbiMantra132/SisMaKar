@@ -10,9 +10,10 @@ import { CloudinaryService } from './cloudinary/cloudinary.service';
 import { AbsenceModule } from './absence/absence.module';
 import { ScheduleModule } from './schedule/schedule.module';
 import { DepartmentModule } from './department/department.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, EmployeesModule, TaskModule, ProfileModule, AbsenceModule, ScheduleModule, DepartmentModule],
+  imports: [PrismaModule, AuthModule, EmployeesModule, TaskModule, ProfileModule, AbsenceModule, ScheduleModule, DepartmentModule, NotificationModule],
   controllers: [AppController],
   providers: [AppService, CloudinaryService],
 })

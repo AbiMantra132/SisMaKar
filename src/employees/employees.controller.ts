@@ -4,6 +4,7 @@ import {
   Post,
   Param,
   Put,
+  Get,
   ParseIntPipe,
 } from '@nestjs/common';
 import { EmployeesService } from './employees.service';
@@ -65,5 +66,10 @@ export class EmployeesController {
   ) {
     const id = Number(employeeId);
     return this.employeesService.updateEmployeeProfile(id, data);
+  }
+
+  @Get('/count')
+  async getEmployeeCount() {
+    return this.employeesService.getEmployeeCount();
   }
 }

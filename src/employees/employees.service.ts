@@ -119,4 +119,8 @@ export class EmployeesService {
       data: updateData,
     });
   }
+
+  async getEmployeeCount(): Promise<number> {
+    return this.prisma.user.count();
+  }
 }

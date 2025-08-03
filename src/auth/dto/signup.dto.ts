@@ -6,4 +6,5 @@ export class SignupDto {
   department: string;
   position: string;
   phoneNumber: string;
+  role: "HR" | "EMPLOYEE" | "ADMIN" | "HEAD";
 }

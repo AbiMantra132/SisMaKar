@@ -6,7 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, SignupDto } from './dto/index';
-import { User } from 'generated/prisma';
+import { User, Leave } from 'generated/prisma';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -17,7 +17,7 @@ export class AuthService {
   ) {}
 
   async signup(signupDto: SignupDto): Promise<User> {
-    const { email, password, fullName, age, department, position, phoneNumber } = signupDto;
+    const { email, password, fullName, age, department, position, phoneNumber, role } = signupDto;
 
     await this.checkUserExists(email);
 
@@ -34,9 +34,16 @@ export class AuthService {
         },
         position,
         phoneNumber,
+        role
       },
     });
 
+    await this.prisma.leave.create({
+      data: {
+        userId: user.id,
+      },
+    });
+    
     return user;
   }
 
@@ -59,7 +66,7 @@ export class AuthService {
   }
 
   async generateToken(user: User): Promise<string> {
-    const payload = { email: user.email, sub: user.id };
+    const payload = { email: user.email, sub: user.id, role: user.role };
     return this.jwtService.sign(payload);
   }
 
@@ -70,6 +77,23 @@ export class AuthService {
 
     if (existingUser) {
       throw new ConflictException('Email is already in use.');
+    }
+  }
+
+  getUserRoleFromCookies(req: any): string | undefined {
+    const token = req.cookies?.['auth-token'];
+    console.log(token)
+    const jwtSecret = process.env.JWT_SECRET;
+
+    if (!token || !jwtSecret) {
+      return undefined;
+    }
+
+    try {
+      const decoded = (require('jsonwebtoken') as typeof import('jsonwebtoken')).verify(token, jwtSecret) as User;
+      return decoded.role;
+    } catch {
+      return undefined;
     }
   }
 }
