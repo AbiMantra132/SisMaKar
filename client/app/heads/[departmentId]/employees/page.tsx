@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { NavigationBar } from "../../../../components/Navbar";
 import { fetchEmployeesByDepartment } from "../../../../utils/fetchEmployee";
+import { fetchUserRole } from "../../../../utils/fetchAuth";
 
 // Define the User type based on your Prisma schema
 interface User {
@@ -28,6 +29,20 @@ export default function DepartmentEmployeesPage() {
   // Fetch employees from API
   useEffect(() => {
     if (!departmentId) return;
+    fetchUserRole().then((data) => {
+      if (data && data.role) {
+        console.log("User role:", data.role);
+           if (data.role !== "HEAD") {
+             if (data.role === "HR" || data.role === "HUMANRESOURCES") {
+               window.location.href = "/humanresources";
+             } else {
+               window.location.href = `/${data.role.toLowerCase()}`;
+             }
+           }
+      } else {
+        window.location.href = "/";
+      }
+    });
     setLoading(true);
     fetchEmployeesByDepartment(departmentId, page)
       .then((res) => {
@@ -35,8 +50,6 @@ export default function DepartmentEmployeesPage() {
         setTotal(res.total || 0);
       })
       .finally(() => setLoading(false));
-
-      console.log(departmentId)
   }, [departmentId, page]);
 
   // Reset to page 1 when search changes

@@ -1,70 +1,134 @@
 "use client";
-import {
-  fetchAllEmployees,
-  fetchEmployeesByDepartment,
-  fetchEmployeesByStatus,
-} from "../../../utils/fetchEmployee";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { NavigationBar } from "../../../components/Navbar";
 import EmailIcon from "@mui/icons-material/Email";
+import { fetchCompleteProfile } from "../../../utils/fetchProfile";
+import { fetchEmployeeLeaveInfo } from "../../../utils/fetchAttendance";
+import {
+  getNotificationsByRole,
+  acceptNotification,
+  rejectNotification,
+} from "../../../utils/fetchNotification";
+import { fetchUserRole } from "../../../utils/fetchAuth";
+
+interface Notification {
+  id: number;
+  senderId: number;
+  createdAt: string;
+  status: string;
+  leave: {
+    leaveAmmount: number;
+    leaveTotal: number;
+  } | null;
+}
 
 export default function AnnualleavePage() {
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState<number>(1);
-  const [department, setDepartment] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [showPopup, setShowPopup] = useState<boolean>(false);
-  const [editEmployee, setEditEmployee] = useState<any>(null);
+
+  const fetchLeaveRequests = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Ambil notifikasi leave request untuk HR
+      const data = await getNotificationsByRole("HR");
+      // Filter hanya leave request dan pastikan ada relasi leave dan sender
+      const leaveRequests = (data || []).filter(
+        (notif: any) => notif.type === "leave"
+      );
+      console.log("Fetched leave requests:", leaveRequests);
+      setNotifications(leaveRequests);
+    } catch (err) {
+      setError("Failed to fetch leave requests");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchEmployees = async () => {
-      setLoading(true);
-      try {
-        let data;
-        if (department) {
-          data = await fetchEmployeesByDepartment(department, page);
-        } else if (status) {
-          data = await fetchEmployeesByStatus(status, page);
-        } else {
-          data = await fetchAllEmployees(page);
+    fetchUserRole().then((data) => {
+      if (data && data.role) {
+        console.log("User role:", data.role);
+        if (data.role !== "HR") {
+          window.location.href = `/${data.role.toLowerCase()}`;
         }
-
-        console.log(data.data);
-        setEmployees(data.data || []);
-      } catch (err) {
-        setError("Failed to fetch employees");
-        console.error(err);
-      } finally {
-        setLoading(false);
+      } else {
+        window.location.href = "/";
       }
+    });
+    fetchLeaveRequests();
+  }, []);
+
+  const handleAccept = async (id: number) => {
+    await acceptNotification(id);
+    fetchLeaveRequests();
+  };
+
+  const handleReject = async (id: number) => {
+    await rejectNotification(id);
+    fetchLeaveRequests();
+  };
+
+  const [senderProfiles, setSenderProfiles] = useState<Record<number, any>>({});
+
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      if (!notifications.length) return;
+      const uniqueSenderIds = Array.from(
+        new Set(notifications.map((notif) => notif.senderId).filter(Boolean))
+      );
+
+      const profiles: Record<number, any> = {};
+      await Promise.all(
+        uniqueSenderIds.map(async (id) => {
+          try {
+            const profile = await fetchCompleteProfile(id as number);
+            profiles[id as number] = profile.user;
+          } catch {
+            profiles[id as number] = null;
+          }
+        })
+      );
+      setSenderProfiles(profiles);
     };
+    fetchProfiles();
+  }, [notifications]);
 
-    fetchEmployees();
-  }, [page, department, status]);
+  // State to store leave info per senderId
+  const [senderLeaveInfo, setSenderLeaveInfo] = useState<
+    Record<number, { leaveAmmount: number; leaveTotal: number }>
+  >({});
 
-  const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setDepartment(e.target.value);
-    setStatus("");
-    setPage(1);
-  };
+  useEffect(() => {
+    const fetchLeaveInfos = async () => {
+      if (!notifications.length) return;
+      const uniqueSenderIds = Array.from(
+        new Set(notifications.map((notif) => notif.senderId).filter(Boolean))
+      );
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-  };
-
-  const filteredEmployees = employees.filter(
-    (employee) =>
-      employee.fullName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (status === "" ||
-        (status === "PERMANENT" &&
-          employee.position === "PERMANENT EMPLOYEE") ||
-        (status === "CONTRACT" && employee.position === "CONTRACT EMPLOYEE") ||
-        (status === "DAILY" && employee.position === "DAILY WORKER") ||
-        (status === "INTERN" && employee.position === "INTERNSHIP/TRAINEE"))
-  );
+      const leaveInfos: Record<
+        number,
+        { leaveAmmount: number; leaveTotal: number }
+      > = {};
+      await Promise.all(
+        uniqueSenderIds.map(async (id) => {
+          try {
+            const leaveInfo = await fetchEmployeeLeaveInfo(id as number);
+            console.log(`Leave info for ${id}:`, leaveInfo);
+            leaveInfos[id as number] = {
+              leaveAmmount: leaveInfo.leaveAmmount,
+              leaveTotal: leaveInfo.leaveTotal,
+            };
+          } catch {
+            leaveInfos[id as number] = { leaveAmmount: 0, leaveTotal: 0 };
+          }
+        })
+      );
+      setSenderLeaveInfo(leaveInfos);
+    };
+    fetchLeaveInfos();
+  }, [notifications]);
 
   return (
     <div className="relative">
@@ -108,92 +172,73 @@ export default function AnnualleavePage() {
             Attendance
           </button>
         </div>
-
-        <div className="flex gap-4 mt-10 w-[50%]">
-          <form onSubmit={handleSearch} className="w-full">
-            <input
-              type="text"
-              placeholder="Search employee"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-primary-color"
-            />
-          </form>
-          <div className="flex items-center gap-2 w-[30rem]">
-            <select
-              value={department}
-              onChange={handleDepartmentChange}
-              className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:border-primary-color"
-            >
-              <option value="">Select Department</option>
-              <option value="IT">IT</option>
-              <option value="HK">HK</option>
-              <option value="ACC">ACC</option>
-              <option value="FB">FB</option>
-              <option value="SALES">SALES</option>
-              <option value="ENG">ENG</option>
-              <option value="FO">FO</option>
-            </select>
-          </div>
-        </div>
         <table className="w-full table-auto mt-20">
           <thead>
             <tr className="text-contrast-color">
               <th>Name</th>
               <th>Date</th>
               <th>Leave Amount</th>
-              <th>Total</th>
-              <th>Detail</th>
+              <th>Leave Total</th>
+              <th>Status</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="text-center py-6">
+                <td colSpan={6} className="text-center py-6">
                   Loading...
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-error-color">
+                <td colSpan={6} className="text-center py-6 text-error-color">
                   {error}
                 </td>
               </tr>
-            ) : filteredEmployees.length === 0 ? (
+            ) : notifications.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-6">
-                  No employees found
+                <td colSpan={6} className="text-center py-6">
+                  No leave requests found
                 </td>
               </tr>
             ) : (
-              filteredEmployees.map((employee) => (
+              notifications.map((notif) => (
                 <tr
-                  key={employee.id}
+                  key={notif.id}
                   className="border-b border-gray-200 hover:bg-gray-50 transition-colors text-center my-2"
                 >
                   <td className="py-6 px-3 text-center">
-                    {employee.fullName || "-"}
+                    {senderProfiles[notif.senderId]?.fullName || "-"}
                   </td>
                   <td className="py-6 px-3 text-center">
-                    {/* Replace with actual leave date */}
-                    {employee.leaveDate || "-"}
+                    {notif.createdAt
+                      ? new Date(notif.createdAt).toLocaleDateString()
+                      : "-"}
                   </td>
                   <td className="py-6 px-3 text-center">
-                    {/* Replace with actual leave amount */}
-                    {employee.leaveAmount || "-"}
+                    {senderLeaveInfo[notif.senderId]?.leaveAmmount ?? "-"}
                   </td>
                   <td className="py-6 px-3 text-center">
-                    {/* Replace with actual total */}
-                    {employee.leaveTotal || "-"}
+                    {senderLeaveInfo[notif.senderId]?.leaveTotal ?? "-"}
+                  </td>
+                  <td className="py-6 px-3 text-center capitalize">
+                    {notif.status}
                   </td>
                   <td className="py-6 px-3 text-center">
                     <button
-                      className="bg-primary-color text-white px-4 py-1 rounded-lg mr-2 hover:opacity-90 transition-opacity"
-                      onClick={() =>
-                        (window.location.href = `/employees/${employee.id}`)
-                      }
+                      className="bg-green-500 text-white px-4 py-1 rounded-lg mr-2 hover:opacity-90 transition-opacity"
+                      disabled={notif.status === "approved"}
+                      onClick={() => handleAccept(notif.id)}
                     >
-                      Detail
+                      Accept
+                    </button>
+                    <button
+                      className="bg-red-500 text-white px-4 py-1 rounded-lg hover:opacity-90 transition-opacity"
+                      disabled={notif.status === "rejected"}
+                      onClick={() => handleReject(notif.id)}
+                    >
+                      Reject
                     </button>
                   </td>
                 </tr>

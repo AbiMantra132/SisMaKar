@@ -27,6 +27,8 @@ export const createSchedule = async (data: CreateScheduleDto) => {
       body: JSON.stringify(data),
     });
 
+    console.log(response);
+
     if (!response.ok) throw new Error("Failed to create schedule");
     return await response.json();
   } catch (error) {

@@ -8,6 +8,8 @@ import { Sliders } from "../components/Sliders";
 import Slide1Image from "../public/sliders/landing/slide-1.jpg";
 import Slide2Image from "../public/sliders/landing/slide-2.jpg";
 import Slide3Image from "../public/sliders/landing/slide-3.jpg";
+import { useEffect, useState } from "react";
+import { fetchUserRole } from "../utils/fetchAuth";
 
 const sliderContent = [
   { image: Slide1Image.src },
@@ -22,6 +24,7 @@ const sliderContent = [
 ];
 
 export default function Home() {
+
   return (
     <div className="scale-90 flex flex-col items-center justify-center font-poppins">
       <div className="flex flex-col items-center justify-center max-w-[35%] h-[500px]">

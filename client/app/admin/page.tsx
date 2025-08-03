@@ -1,8 +1,9 @@
-'use client';
+"use client";
 import { NavigationBar } from "../../components/Navbar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchAllEmployees } from "../../utils/fetchEmployee";
+import { fetchUserRole } from "../../utils/fetchAuth";
 
 type Employee = {
   id: number;
@@ -18,6 +19,20 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // fetchUserRole().then((data) => {
+    //   if (data && data.role) {
+    //   console.log("User role:", data.role);
+    //   if (data.role !== "ADMIN") {
+    //     if (data.role === "HR" || data.role === "HUMANRESOURCES") {
+    //       window.location.href = "/humanresources";
+    //     } else {
+    //       window.location.href = `/${data.role.toLowerCase()}`;
+    //     }
+    //   }
+    //   } else {
+    //   window.location.href = "/";
+    //   }
+    // });
     const getEmployees = async () => {
       try {
         setLoading(true);

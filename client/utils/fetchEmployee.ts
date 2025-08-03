@@ -20,6 +20,8 @@ export const fetchEmployeesByDepartment = async (department: string, page: numbe
     },
     body: JSON.stringify({ page }),
   });
+
+  
   return response.json();
 };
 
@@ -48,5 +50,16 @@ export const updateEmployeeProfile = async (employeeId: number, data: any) => {
   if (!response.ok) {
     throw new Error("Failed to update employee profile");
   }
+  return response.json();
+};
+
+
+export const fetchEmployeeCount = async () => {
+  const response = await fetch(`${EMPLOYEE_ROUTES_ORIGIN}count`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   return response.json();
 };

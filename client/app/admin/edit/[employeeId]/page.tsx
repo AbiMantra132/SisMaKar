@@ -5,7 +5,8 @@ import { NavigationBar } from "../../../../components/Navbar";
 import { useRouter } from "next/navigation";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import { fetchCompleteProfile } from "../../../../utils/fetchProfile";
-import { updateEmployeeProfile } from "../../../../utils/fetchEmployee"; // <-- Import here
+import { updateEmployeeProfile } from "../../../../utils/fetchEmployee";
+import { fetchUserRole } from "../../../../utils/fetchAuth"; // <-- Import here
 
 export default function EditEmployeePage({
   params,
@@ -29,6 +30,16 @@ export default function EditEmployeePage({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    fetchUserRole().then((data) => {
+      if (data && data.role) {
+        console.log("User role:", data.role);
+        if (data.role !== "ADMIN") {
+          window.location.href = "/";
+        }
+      } else {
+        window.location.href = "/";
+      }
+    });
     const fetchProfile = async () => {
       try {
         const profile = await fetchCompleteProfile(Number(employeeId));

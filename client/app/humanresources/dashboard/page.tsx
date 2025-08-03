@@ -7,6 +7,7 @@ import {
   fetchEmployeesByDepartment,
   fetchEmployeesByStatus,
 } from "../../../utils/fetchEmployee";
+import { fetchUserRole } from "../../../utils/fetchAuth";
 
 export default function dashboardHRPage() {
   const [employees, setEmployees] = useState<any[]>([]);
@@ -22,6 +23,16 @@ export default function dashboardHRPage() {
   useEffect(() => {
     const fetchEmployees = async () => {
       setLoading(true);
+      fetchUserRole().then((data) => {
+        if (data && data.role) {
+          console.log("User role:", data.role);
+          if (data.role !== "HR") {
+            window.location.href = `/${data.role.toLowerCase()}`;
+          }
+        } else {
+          window.location.href = "/";
+        }
+      });
       try {
         let data;
         if (department) {
@@ -115,6 +126,9 @@ export default function dashboardHRPage() {
             <EmailIcon
               sx={{ fontSize: "5rem" }}
               className="text-contrast-color"
+              onClick={() => {
+                window.location.href = `/humanresources/notification`;
+              }}
             />
           </div>
         </div>

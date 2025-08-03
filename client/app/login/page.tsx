@@ -33,10 +33,13 @@ export default function LoginPage() {
       console.log("Login response:", response);
       if (response.success) {
         const user = response.user;
+        console.log("Logged in user:", user);
         if (user.role === "HEAD") {
           router.push(`/heads/${user.departmentName}`);
         } else if (user.role === "HR") {
           router.push("/humanresources/dashboard");
+        } else if (user.role === "ADMIN") {
+          router.push("/admin");
         } else {
           router.push("/employees/" + user.id); // Default redirect
         }
@@ -98,14 +101,6 @@ export default function LoginPage() {
                 <PrimaryButton title="Sign In" onClick={handleSubmit} />
               </div>
             </form>
-            <div className="mt-40 text-center">
-              <span className="text-contrast-color">
-                Don't have an account?
-              </span>{" "}
-              <Link href="/signup" className="text-primary-color cursor-pointer">
-                Register here
-              </Link>
-            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 "use client";
-import React, { JSX } from "react";
+import React, { JSX, useEffect } from "react";
 import Image from "next/image";
 
 import Logo from "../../../public/Logo.png";
@@ -10,6 +10,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useState } from "react";
 import { fetchSignup } from "../../../utils/fetchAuth";
 import { useRouter } from "next/navigation";
+import { fetchUserRole } from "../../../utils/fetchAuth";
 
 export default function registerPage() {
   const router = useRouter();
@@ -23,6 +24,19 @@ export default function registerPage() {
     position: "",
     role: "",
   });
+
+  // useEffect(() => {
+  //   fetchUserRole().then((data) => {
+  //     if (data && data.role) {
+  //       console.log("User role:", data.role);
+  //       if (data.role !== "ADMIN") {
+  //         window.location.href = "/";
+  //       }
+  //     } else {
+  //       window.location.href = "/";
+  //     }
+  //   });
+  // });
 
   const handleSubmit = async () => {
     try {
@@ -48,11 +62,11 @@ export default function registerPage() {
   };
 
   return (
-    <div className="flex w-[53vw] flex-col justify-center mx-auto h-[100vh]">
+    <div className="flex w-[53vw] flex-col justify-center mx-auto h-[100vh] m-20">
       <button
         onClick={() => router.back()}
         className="px-10 py-2 text-primary-color border-2 border-primary-color rounded-full 
-          hover:bg-primary-color hover:text-white transition-all duration-300 ease-in-out scale-75 w-[10rem] mx-20 mt-10"
+            hover:bg-primary-color hover:text-white transition-all duration-300 ease-in-out scale-75 w-[10rem] mx-20 "
       >
         ← Back
       </button>
@@ -192,7 +206,7 @@ export default function registerPage() {
               <option value="" disabled>
                 Select your role
               </option>
-              <option value="HEAD">HEAD</option>
+              <option value="EMPLOYEE">EMPLOYEE</option>
               <option value="HR">HR</option>
               <option value="ADMIN">ADMIN</option>
               <option value="HEAD">HEAD</option>

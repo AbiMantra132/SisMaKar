@@ -9,6 +9,8 @@ import {
   deleteSchedule,
 } from "../../../utils/fetchSchedule";
 import { fetchDepartmentHeadId } from "../../../utils/fetchDepartment";
+import EmailIcon from "@mui/icons-material/Email";
+import { fetchUserRole } from "../../../utils/fetchAuth";
 
 interface User {
   id: number;
@@ -108,9 +110,25 @@ export default function HeadDepartmentPage({
 
   // Fetch employees from BE
   useEffect(() => {
+    fetchUserRole().then((data) => {
+      if (data && data.role) {
+        console.log("User role:", data.role);
+         if (data.role !== "HEAD") {
+           if (data.role === "HR" || data.role === "HUMANRESOURCES") {
+             window.location.href = "/humanresources";
+           } else {
+             window.location.href = `/${data.role.toLowerCase()}`;
+           }
+         }
+      } else {
+        window.location.href = "/";
+      }
+    });
     const loadEmployees = async () => {
       const employee = await fetchEmployeesByDepartment(params.departmentId);
       const data = employee.data || [];
+
+      console.log(employee);
 
       const mapped = Array.isArray(data)
         ? data.map((emp: User) => {
@@ -374,6 +392,15 @@ export default function HeadDepartmentPage({
               Welcome, Heads
             </h1>
           </div>
+          <div>
+            <EmailIcon
+              sx={{ fontSize: "5rem", cursor: "pointer" }}
+              className="text-contrast-color"
+              onClick={() => {
+                window.location.href = `/heads/${params.departmentId}/notification`;
+              }}
+            />
+          </div>
         </div>
         <div className="px-4 py-6 md:px-8 mt-10">
           {/* Month Filter */}
@@ -397,9 +424,52 @@ export default function HeadDepartmentPage({
               />
             </div>
             <div className="flex justify-between">
-              <button className="bg-green-600 text-white px-6 py-2 rounded-full shadow-md hover:opacity-80 transition-all duration-300 ease-in-out mr-2">
+                <button
+                className="bg-green-600 text-white px-6 py-2 rounded-full shadow-md hover:opacity-80 transition-all duration-300 ease-in-out mr-2"
+                onClick={() => {
+                  // Dynamically import to avoid SSR issues
+                  import("../../../utils/fetchXLSX").then(({ exportJsonToXlsx }) => {
+                  // Prepare data for 10 days
+                  const dates = getDatesArray();
+                  // Flatten schedules for 10 days and map with employee info
+                  const exportData: any[] = [];
+                  employees.forEach((emp) => {
+                    dates.forEach((date) => {
+                    const schedule = schedules.find(
+                      (s) =>
+                      s.userId === emp.id &&
+                      new Date(s.date).toDateString() === date.toDateString()
+                    );
+                    exportData.push({
+                      Employee: `${emp.firstName || emp.fullName.split(" ")[0]} ${emp.lastName || emp.fullName.split(" ").slice(1).join(" ")}`,
+                      Date: date.toISOString().split("T")[0],
+                      "Start Time": schedule
+                      ? new Date(schedule.startTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        })
+                      : "",
+                      "End Time": schedule
+                      ? new Date(schedule.endTime).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        })
+                      : "",
+                      Tasks: schedule && schedule.scheduleTasks && schedule.scheduleTasks.length > 0
+                      ? schedule.scheduleTasks.map((st) => st.task.title).join(", ")
+                      : "",
+                      "Task Status": schedule && schedule.scheduleTasks && schedule.scheduleTasks.length > 0
+                      ? schedule.scheduleTasks.map((st) => st.task.status).join(", ")
+                      : "",
+                    });
+                    });
+                  });
+                  exportJsonToXlsx(exportData, "department_schedule.xlsx");
+                  });
+                }}
+                >
                 Download XLSX
-              </button>
+                </button>
               <button
                 onClick={() => {
                   window.location.href = `/heads/${params.departmentId}/employees`;
@@ -411,17 +481,16 @@ export default function HeadDepartmentPage({
             </div>
           </div>
 
-          <div className="mr-5">
+          <div>
             <div
-              className="grid gap-2 justify-center scale-105"
+              className="grid gap-2 justify-center scale-85"
               style={{
                 gridTemplateColumns: `200px repeat(${
                   getDatesArray().length
                 }, 150px)`,
               }}
             >
-              {/* Header Row */}
-              <div className="sticky left-0 bg-gray-50 border p-3 font-semibold text-contrast-color">
+              <div className=" bg-gray-50 border p-3 font-semibold text-contrast-color z-10 shadow-md">
                 Employee
               </div>
               {getDatesArray().map((date) => (
@@ -438,7 +507,7 @@ export default function HeadDepartmentPage({
                 <>
                   <div
                     key={`emp-${employee.id}`}
-                    className="sticky left-0 bg-white border p-3 font-medium text-contrast-color"
+                    className="bg-white border p-3 font-medium text-contrast-color"
                   >
                     {employee.firstName || employee.fullName.split(" ")[0]}{" "}
                     {employee.lastName ||

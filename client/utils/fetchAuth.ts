@@ -77,3 +77,16 @@ export async function fetchVerify() {
     throw error;
   }
 }
+
+// Get User Role
+export async function fetchUserRole() {
+  try {
+    const response = await fetch(`${AUTH_ROUTES_ORIGIN}role`, {
+      credentials: 'include',
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Fetch user role error:', error);
+    throw error;
+  }
+}
